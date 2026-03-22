@@ -82,66 +82,109 @@ func NewClassifier(modelPath string, opts ...ClassifierOption) (*Classifier, err
 		opt(cfg)
 	}
 
-	// 1. Load model metadata to get input/output names and shapes
-	inputInfos, outputInfos, err := ort.GetInputOutputInfo(modelPath)
+	// Load model metadata and extract tensor info
+	inputNames, inputShapes, outputNames, outputInfos, err := loadModelMetadata(modelPath)
 	if err != nil {
-		return nil, fmt.Errorf("birdnet: failed to load model metadata: %w", err)
+		return nil, err
 	}
 
-	// 2. Extract input/output names and shapes
-	if len(inputInfos) == 0 {
-		return nil, &ModelDetectionError{Reason: "model has no input tensors"}
+	// Detect or use provided model type
+	mt, err := resolveModelType(cfg, inputShapes, len(outputNames))
+	if err != nil {
+		return nil, err
 	}
 
-	inputNames := make([]string, len(inputInfos))
-	inputShapes := make([][]int64, len(inputInfos))
-	for i := range inputInfos {
-		inputNames[i] = inputInfos[i].Name
-		inputShapes[i] = inputInfos[i].Dimensions
-	}
-
-	outputNames := make([]string, len(outputInfos))
-	for i := range outputInfos {
-		outputNames[i] = outputInfos[i].Name
-	}
-
-	// 3. Validate input shape has enough dimensions
-	if len(inputShapes[0]) < 2 {
-		return nil, &ModelDetectionError{Reason: fmt.Sprintf("input shape has %d dimensions, expected at least 2", len(inputShapes[0]))}
-	}
-
-	// 4. Detect or use provided model type
-	var mt ModelType
-	if cfg.modelType != nil {
-		mt = *cfg.modelType
-	} else {
-		mt, err = detectModelTypeFromShapes(inputShapes, len(outputNames))
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// 5. Build model config
+	// Build model config and load labels
 	modelCfg := buildModelConfig(mt, inputShapes[0], len(outputNames))
 
-	// 6. Load labels
 	labels, err := resolveLabels(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	// 7. Validate label count against logits output size
-	if modelCfg.LogitsIndex < len(outputInfos) {
-		logitsDims := outputInfos[modelCfg.LogitsIndex].Dimensions
-		if len(logitsDims) >= 2 {
-			logitsSize := int(logitsDims[len(logitsDims)-1])
-			if logitsSize > 0 && len(labels) != logitsSize {
-				return nil, &LabelCountError{Expected: logitsSize, Got: len(labels)}
-			}
+	if err := validateLabelCount(&modelCfg, outputInfos, len(labels)); err != nil {
+		return nil, err
+	}
+
+	// Create ONNX session
+	session, err := createSession(modelPath, inputNames, outputNames, cfg.sessionOptsFn)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Classifier{
+		session:     session,
+		config:      modelCfg,
+		labels:      labels,
+		topK:        cfg.topK,
+		minConf:     cfg.minConf,
+		inputName:   inputNames[0],
+		outputNames: outputNames,
+	}, nil
+}
+
+// loadModelMetadata reads input/output tensor names and shapes from the model file.
+func loadModelMetadata(modelPath string) (
+	inputNames []string, inputShapes [][]int64,
+	outputNames []string, outputInfos []ort.InputOutputInfo,
+	err error,
+) {
+	inputInfos, outputInfos, err := ort.GetInputOutputInfo(modelPath)
+	if err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("birdnet: failed to load model metadata: %w", err)
+	}
+
+	if len(inputInfos) == 0 {
+		return nil, nil, nil, nil, &ModelDetectionError{Reason: "model has no input tensors"}
+	}
+
+	inputNames = make([]string, len(inputInfos))
+	inputShapes = make([][]int64, len(inputInfos))
+	for i := range inputInfos {
+		inputNames[i] = inputInfos[i].Name
+		inputShapes[i] = inputInfos[i].Dimensions
+	}
+
+	outputNames = make([]string, len(outputInfos))
+	for i := range outputInfos {
+		outputNames[i] = outputInfos[i].Name
+	}
+
+	if len(inputShapes[0]) < 2 {
+		return nil, nil, nil, nil, &ModelDetectionError{
+			Reason: fmt.Sprintf("input shape has %d dimensions, expected at least 2", len(inputShapes[0])),
 		}
 	}
 
-	// 8. Create session options with defaults
+	return inputNames, inputShapes, outputNames, outputInfos, nil
+}
+
+// resolveModelType returns the model type from config or auto-detects from shapes.
+func resolveModelType(cfg *classifierConfig, inputShapes [][]int64, numOutputs int) (ModelType, error) {
+	if cfg.modelType != nil {
+		return *cfg.modelType, nil
+	}
+	return detectModelTypeFromShapes(inputShapes, numOutputs)
+}
+
+// validateLabelCount checks that the label count matches the model's logits output dimension.
+func validateLabelCount(modelCfg *ModelConfig, outputInfos []ort.InputOutputInfo, labelCount int) error {
+	if modelCfg.LogitsIndex >= len(outputInfos) {
+		return nil
+	}
+	logitsDims := outputInfos[modelCfg.LogitsIndex].Dimensions
+	if len(logitsDims) < 2 {
+		return nil
+	}
+	logitsSize := int(logitsDims[len(logitsDims)-1])
+	if logitsSize > 0 && labelCount != logitsSize {
+		return &LabelCountError{Expected: logitsSize, Got: labelCount}
+	}
+	return nil
+}
+
+// createSession builds an ONNX Runtime session with default options.
+func createSession(modelPath string, inputNames, outputNames []string, sessionOptsFn func(*ort.SessionOptions)) (*ort.DynamicAdvancedSession, error) {
 	sessOpts, err := ort.NewSessionOptions()
 	if err != nil {
 		return nil, fmt.Errorf("birdnet: failed to create session options: %w", err)
@@ -155,27 +198,15 @@ func NewClassifier(modelPath string, opts ...ClassifierOption) (*Classifier, err
 		return nil, fmt.Errorf("birdnet: failed to set inter-op threads: %w", err)
 	}
 
-	// 9. Apply user session options callback
-	if cfg.sessionOptsFn != nil {
-		cfg.sessionOptsFn(sessOpts)
+	if sessionOptsFn != nil {
+		sessionOptsFn(sessOpts)
 	}
 
-	// 10. Create DynamicAdvancedSession
-	session, err := ort.NewDynamicAdvancedSession(modelPath,
-		inputNames, outputNames, sessOpts)
+	session, err := ort.NewDynamicAdvancedSession(modelPath, inputNames, outputNames, sessOpts)
 	if err != nil {
 		return nil, fmt.Errorf("birdnet: failed to create ONNX session: %w", err)
 	}
-
-	return &Classifier{
-		session:     session,
-		config:      modelCfg,
-		labels:      labels,
-		topK:        cfg.topK,
-		minConf:     cfg.minConf,
-		inputName:   inputNames[0],
-		outputNames: outputNames,
-	}, nil
+	return session, nil
 }
 
 func resolveLabels(cfg *classifierConfig) ([]string, error) {
@@ -335,7 +366,7 @@ func (c *Classifier) createOutputTensors(batchSize int) ([]ort.Value, error) {
 }
 
 // outputShape returns the expected shape for a given output tensor index.
-func (c *Classifier) outputShape(outputIdx int, batchSize int) ([]int64, error) {
+func (c *Classifier) outputShape(outputIdx, batchSize int) ([]int64, error) {
 	batch := int64(batchSize)
 	switch c.config.Type {
 	case BirdNETv24:

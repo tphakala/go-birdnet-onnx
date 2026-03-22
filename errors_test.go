@@ -2,6 +2,7 @@ package birdnet
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -55,6 +56,6 @@ func TestInvalidDateError(t *testing.T) {
 }
 
 func TestSentinelErrors(t *testing.T) {
-	assert.ErrorIs(t, ErrModelPathRequired, ErrModelPathRequired)
-	assert.ErrorIs(t, ErrLabelsRequired, ErrLabelsRequired)
+	require.ErrorIs(t, fmt.Errorf("wrap: %w", ErrModelPathRequired), ErrModelPathRequired)
+	require.ErrorIs(t, fmt.Errorf("wrap: %w", ErrLabelsRequired), ErrLabelsRequired)
 }

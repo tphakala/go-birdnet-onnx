@@ -3,6 +3,7 @@ module github.com/tphakala/go-birdnet-onnx
 go 1.26
 
 require (
+	github.com/quasilyte/go-ruleguard/dsl v0.3.23
 	github.com/stretchr/testify v1.11.1
 	github.com/yalue/onnxruntime_go v1.27.0
 )
