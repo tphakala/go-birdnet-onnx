@@ -57,17 +57,16 @@ func NewRangeFilter(modelPath string, opts ...RangeFilterOption) (*RangeFilter, 
 	if err != nil {
 		return nil, fmt.Errorf("birdnet: failed to create session options: %w", err)
 	}
+	defer func() { _ = sessOpts.Destroy() }()
+
 	if err := sessOpts.SetIntraOpNumThreads(1); err != nil {
-		_ = sessOpts.Destroy()
 		return nil, fmt.Errorf("birdnet: failed to set intra-op threads: %w", err)
 	}
 	if err := sessOpts.SetInterOpNumThreads(1); err != nil {
-		_ = sessOpts.Destroy()
 		return nil, fmt.Errorf("birdnet: failed to set inter-op threads: %w", err)
 	}
 
 	session, err := ort.NewDynamicAdvancedSession(modelPath, inputNames, outputNames, sessOpts)
-	_ = sessOpts.Destroy()
 	if err != nil {
 		return nil, fmt.Errorf("birdnet: failed to create range filter session: %w", err)
 	}
