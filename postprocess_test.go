@@ -32,7 +32,7 @@ func TestSigmoidSlice(t *testing.T) {
 	assert.InDelta(t, 0.5, result[0], 0.001)
 	assert.InDelta(t, 1.0, result[1], 0.001)
 	assert.InDelta(t, 0.0, result[2], 0.001)
-	assert.Equal(t, float32(0), input[0])
+	assert.InDelta(t, float32(0), input[0], 1e-6)
 }
 
 func TestSoftmax(t *testing.T) {
@@ -74,7 +74,7 @@ func TestTopK(t *testing.T) {
 	result := topK(scores, labels, 3, 0.0)
 	require.Len(t, result, 3)
 	assert.Equal(t, "b", result[0].Species)
-	assert.Equal(t, float32(0.9), result[0].Confidence)
+	assert.InDelta(t, float32(0.9), result[0].Confidence, 1e-6)
 	assert.Equal(t, 1, result[0].Index)
 	assert.Equal(t, "e", result[1].Species)
 	assert.Equal(t, "c", result[2].Species)

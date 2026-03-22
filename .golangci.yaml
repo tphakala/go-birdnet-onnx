@@ -1,0 +1,84 @@
+version: "2"
+output:
+  sort-order:
+    - linter
+    - severity
+    - file
+linters:
+  exclusions:
+    warn-unused: true
+    rules:
+      - path: frontend/
+        text: ".*"
+  enable:
+    # Existing linters
+    - copyloopvar
+    - durationcheck
+    - errname
+    - errorlint
+    - gocognit
+    - gocritic
+    - misspell
+    - predeclared
+    - revive
+    - unconvert
+    - wastedassign
+    # Security & quality linters
+    - gosec
+    - goconst
+    - staticcheck
+    - ineffassign
+    - bodyclose
+    - fatcontext
+    - iface
+    - dupl
+    #- ireturn
+    - nilnil
+    - nilerr
+    - thelper
+    - testifylint
+    - gocyclo
+    - modernize
+    - forbidigo  # Sensitive field name detection
+    # Performance linters
+    - prealloc
+    - exhaustive
+  disable:
+    - unused
+  settings:
+    gocognit:
+      min-complexity: 20
+    gocritic:
+      disabled-checks:
+        - commentFormatting
+        - commentedOutCode
+      enabled-tags:
+        - style
+        - diagnostic
+        - performance
+      settings:
+        ruleguard:
+          rules: "rules/*.go"
+    revive:
+      rules:
+        - name: unused-parameter
+          disabled: true
+    gosec:
+      # Configure gosec for security scanning
+      excludes:
+        - G104  # Audit errors not checked (covered by errcheck)
+      severity: medium
+      confidence: medium
+    prealloc:
+      # Configure prealloc for slice optimization
+      simple: true
+      range-loops: true
+      for-loops: true
+    exhaustive:
+      # Check exhaustiveness of enum switch statements
+      default-signifies-exhaustive: true
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  uniq-by-line: true
+  new: false

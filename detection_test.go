@@ -52,7 +52,7 @@ func TestBuildModelConfig_BirdNETv24(t *testing.T) {
 	cfg := buildModelConfig(BirdNETv24, []int64{1, 144000}, 1)
 	assert.Equal(t, BirdNETv24, cfg.Type)
 	assert.Equal(t, 48000, cfg.SampleRate)
-	assert.Equal(t, 3.0, cfg.Duration)
+	assert.InDelta(t, 3.0, cfg.Duration, 1e-6)
 	assert.Equal(t, 144000, cfg.SampleCount)
 	assert.Equal(t, 0, cfg.EmbeddingSize)
 	assert.Equal(t, -1, cfg.EmbeddingIndex)

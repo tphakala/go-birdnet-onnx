@@ -8,31 +8,31 @@ import (
 )
 
 func TestCalculateWeek_January1(t *testing.T) {
-	assert.Equal(t, float32(1.0), CalculateWeek(1, 1))
+	assert.InDelta(t, float32(1.0), CalculateWeek(1, 1), 1e-6)
 }
 
 func TestCalculateWeek_January8(t *testing.T) {
-	assert.Equal(t, float32(2.0), CalculateWeek(1, 8))
+	assert.InDelta(t, float32(2.0), CalculateWeek(1, 8), 1e-6)
 }
 
 func TestCalculateWeek_January28(t *testing.T) {
-	assert.Equal(t, float32(4.0), CalculateWeek(1, 28))
+	assert.InDelta(t, float32(4.0), CalculateWeek(1, 28), 1e-6)
 }
 
 func TestCalculateWeek_January31_Clamped(t *testing.T) {
-	assert.Equal(t, float32(4.0), CalculateWeek(1, 31))
+	assert.InDelta(t, float32(4.0), CalculateWeek(1, 31), 1e-6)
 }
 
 func TestCalculateWeek_February1(t *testing.T) {
-	assert.Equal(t, float32(5.0), CalculateWeek(2, 1))
+	assert.InDelta(t, float32(5.0), CalculateWeek(2, 1), 1e-6)
 }
 
 func TestCalculateWeek_December31_Clamped(t *testing.T) {
-	assert.Equal(t, float32(48.0), CalculateWeek(12, 31))
+	assert.InDelta(t, float32(48.0), CalculateWeek(12, 31), 1e-6)
 }
 
 func TestCalculateWeek_December1(t *testing.T) {
-	assert.Equal(t, float32(45.0), CalculateWeek(12, 1))
+	assert.InDelta(t, float32(45.0), CalculateWeek(12, 1), 1e-6)
 }
 
 func TestValidateCoordinates_Valid(t *testing.T) {
@@ -129,5 +129,5 @@ func TestFilterBatch(t *testing.T) {
 	result := filterBatchPredictions(batches, scores, 0.03, false)
 	require.Len(t, result, 2)
 	require.Len(t, result[0], 1)
-	require.Len(t, result[1], 0)
+	require.Empty(t, result[1])
 }

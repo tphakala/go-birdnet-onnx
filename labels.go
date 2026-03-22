@@ -12,7 +12,7 @@ import (
 )
 
 func loadLabels(path string) ([]string, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // Path provided by caller
 	if err != nil {
 		return nil, &LabelLoadError{Path: path, Reason: err.Error()}
 	}
@@ -57,7 +57,7 @@ func loadLabelsCSV(data []byte) ([]string, error) {
 	}
 
 	r := csv.NewReader(bytes.NewReader(data))
-	r.Comma = rune(delimiter)
+	r.Comma = delimiter
 	r.LazyQuotes = true
 
 	records, err := r.ReadAll()

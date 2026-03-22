@@ -27,9 +27,9 @@ func TestModelType_SampleRate(t *testing.T) {
 }
 
 func TestModelType_Duration(t *testing.T) {
-	assert.Equal(t, 3.0, BirdNETv24.Duration())
-	assert.Equal(t, 5.0, BirdNETv30.Duration())
-	assert.Equal(t, 5.0, PerchV2.Duration())
+	assert.InDelta(t, 3.0, BirdNETv24.Duration(), 1e-6)
+	assert.InDelta(t, 5.0, BirdNETv30.Duration(), 1e-6)
+	assert.InDelta(t, 5.0, PerchV2.Duration(), 1e-6)
 }
 
 func TestModelType_SampleCount(t *testing.T) {
