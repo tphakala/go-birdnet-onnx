@@ -28,14 +28,15 @@ func detectModelTypeFromShapes(inputShapes [][]int64, numOutputs int) (ModelType
 	}
 }
 
-func buildModelConfig(mt ModelType, inputShape []int64, numOutputs int, _ int) ModelConfig {
+func buildModelConfig(mt ModelType, inputShape []int64, numOutputs int) ModelConfig {
 	cfg := ModelConfig{
-		Type:        mt,
-		SampleRate:  mt.SampleRate(),
-		Duration:    mt.Duration(),
-		SampleCount: mt.SampleCount(),
-		NumOutputs:  numOutputs,
-		InputShape:  make([]int64, len(inputShape)),
+		Type:           mt,
+		SampleRate:     mt.SampleRate(),
+		Duration:       mt.Duration(),
+		SampleCount:    mt.SampleCount(),
+		NumOutputs:     numOutputs,
+		EmbeddingIndex: -1,
+		InputShape:     make([]int64, len(inputShape)),
 	}
 	copy(cfg.InputShape, inputShape)
 
@@ -45,9 +46,11 @@ func buildModelConfig(mt ModelType, inputShape []int64, numOutputs int, _ int) M
 		cfg.EmbeddingSize = 0
 	case BirdNETv30:
 		cfg.LogitsIndex = 1
+		cfg.EmbeddingIndex = 0
 		cfg.EmbeddingSize = 1280
 	case PerchV2:
 		cfg.LogitsIndex = 3
+		cfg.EmbeddingIndex = 0
 		cfg.EmbeddingSize = 1536
 	}
 

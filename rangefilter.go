@@ -149,8 +149,9 @@ func (r *RangeFilter) FilterBatch(batches [][]Prediction, scores []LocationScore
 // Close releases the ONNX session and associated resources.
 func (r *RangeFilter) Close() error {
 	if r.session != nil {
-		_ = r.session.Destroy()
+		err := r.session.Destroy()
 		r.session = nil
+		return err
 	}
 	return nil
 }

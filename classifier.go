@@ -122,7 +122,7 @@ func NewClassifier(modelPath string, opts ...ClassifierOption) (*Classifier, err
 	}
 
 	// 5. Build model config
-	modelCfg := buildModelConfig(mt, inputShapes[0], len(outputNames), 0)
+	modelCfg := buildModelConfig(mt, inputShapes[0], len(outputNames))
 
 	// 6. Load labels
 	labels, err := resolveLabels(cfg)
@@ -390,8 +390,8 @@ func (c *Classifier) processOutput(outputs []ort.Value, batchIdx int) (*Result, 
 	}
 
 	var embeddings []float32
-	if c.config.EmbeddingSize > 0 {
-		embTensor, ok := outputs[0].(*ort.Tensor[float32])
+	if c.config.EmbeddingIndex >= 0 {
+		embTensor, ok := outputs[c.config.EmbeddingIndex].(*ort.Tensor[float32])
 		if !ok {
 			return nil, fmt.Errorf("birdnet: embedding tensor has unexpected type")
 		}

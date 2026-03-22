@@ -57,14 +57,15 @@ func (m ModelType) SampleCount() int {
 
 // ModelConfig holds the derived parameters for a loaded model.
 type ModelConfig struct {
-	Type          ModelType
-	SampleRate    int
-	Duration      float64
-	SampleCount   int
-	NumOutputs    int
-	EmbeddingSize int     // 0 if model doesn't produce embeddings
-	LogitsIndex   int     // which output tensor contains logits
-	InputShape    []int64 // actual shape from ONNX model
+	Type           ModelType
+	SampleRate     int
+	Duration       float64
+	SampleCount    int
+	NumOutputs     int
+	EmbeddingSize  int     // 0 if model doesn't produce embeddings
+	EmbeddingIndex int     // which output tensor contains embeddings, -1 if none
+	LogitsIndex    int     // which output tensor contains logits
+	InputShape     []int64 // actual shape from ONNX model
 }
 
 // Prediction represents a single species prediction with confidence score.

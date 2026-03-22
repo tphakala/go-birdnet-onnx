@@ -70,6 +70,9 @@ func TestLoadLabels_FileNotFound(t *testing.T) {
 }
 
 func TestLoadLabels_UnsupportedExtension(t *testing.T) {
-	_, err := loadLabels("testdata/labels.xyz")
+	_, err := loadLabelsFromBytes([]byte("test"), ".xyz")
 	require.Error(t, err)
+	var labelErr *LabelLoadError
+	require.ErrorAs(t, err, &labelErr)
+	assert.Contains(t, labelErr.Reason, "unsupported")
 }
