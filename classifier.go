@@ -95,7 +95,11 @@ func NewClassifier(modelPath string, opts ...ClassifierOption) (*Classifier, err
 	}
 
 	// Build model config and load labels
-	modelCfg := buildModelConfig(mt, inputShapes[0], len(outputNames))
+	outputShapes := make([][]int64, len(outputInfos))
+	for i := range outputInfos {
+		outputShapes[i] = outputInfos[i].Dimensions
+	}
+	modelCfg := buildModelConfig(mt, inputShapes[0], outputShapes)
 
 	labels, err := resolveLabels(cfg)
 	if err != nil {
@@ -370,7 +374,14 @@ func (c *Classifier) outputShape(outputIdx, batchSize int) ([]int64, error) {
 	batch := int64(batchSize)
 	switch c.config.Type {
 	case BirdNETv24:
-		return []int64{batch, int64(len(c.labels))}, nil
+		switch outputIdx {
+		case 0:
+			return []int64{batch, int64(len(c.labels))}, nil
+		case 1:
+			if c.config.EmbeddingSize > 0 {
+				return []int64{batch, int64(c.config.EmbeddingSize)}, nil
+			}
+		}
 	case BirdNETv30:
 		switch outputIdx {
 		case 0:

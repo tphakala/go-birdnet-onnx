@@ -17,6 +17,8 @@ func detectModelTypeFromShapes(inputShapes [][]int64, numOutputs int) (ModelType
 	switch {
 	case sampleCount == 144000 && numOutputs == 1:
 		return BirdNETv24, nil
+	case sampleCount == 144000 && numOutputs == 2:
+		return BirdNETv24, nil
 	case sampleCount == 160000 && numOutputs == 2:
 		return BirdNETv30, nil
 	case sampleCount == 160000 && numOutputs == 4:
@@ -28,7 +30,8 @@ func detectModelTypeFromShapes(inputShapes [][]int64, numOutputs int) (ModelType
 	}
 }
 
-func buildModelConfig(mt ModelType, inputShape []int64, numOutputs int) ModelConfig {
+func buildModelConfig(mt ModelType, inputShape []int64, outputShapes [][]int64) ModelConfig {
+	numOutputs := len(outputShapes)
 	cfg := ModelConfig{
 		Type:           mt,
 		SampleRate:     mt.SampleRate(),
@@ -43,7 +46,10 @@ func buildModelConfig(mt ModelType, inputShape []int64, numOutputs int) ModelCon
 	switch mt {
 	case BirdNETv24:
 		cfg.LogitsIndex = 0
-		cfg.EmbeddingSize = 0
+		if numOutputs >= 2 {
+			cfg.EmbeddingIndex = 1
+			cfg.EmbeddingSize = lastDim(outputShapes[1])
+		}
 	case BirdNETv30:
 		cfg.LogitsIndex = 1
 		cfg.EmbeddingIndex = 0
@@ -55,4 +61,11 @@ func buildModelConfig(mt ModelType, inputShape []int64, numOutputs int) ModelCon
 	}
 
 	return cfg
+}
+
+func lastDim(shape []int64) int {
+	if len(shape) == 0 {
+		return 0
+	}
+	return int(shape[len(shape)-1])
 }

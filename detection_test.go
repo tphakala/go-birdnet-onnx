@@ -48,8 +48,14 @@ func TestDetectModelType_NoInputs(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestDetectModelType_BirdNETv24WithEmbeddings(t *testing.T) {
+	mt, err := detectModelTypeFromShapes([][]int64{{1, 144000}}, 2)
+	require.NoError(t, err)
+	assert.Equal(t, BirdNETv24, mt)
+}
+
 func TestBuildModelConfig_BirdNETv24(t *testing.T) {
-	cfg := buildModelConfig(BirdNETv24, []int64{1, 144000}, 1)
+	cfg := buildModelConfig(BirdNETv24, []int64{1, 144000}, [][]int64{{1, 6522}})
 	assert.Equal(t, BirdNETv24, cfg.Type)
 	assert.Equal(t, 48000, cfg.SampleRate)
 	assert.InDelta(t, 3.0, cfg.Duration, 1e-6)
@@ -59,15 +65,27 @@ func TestBuildModelConfig_BirdNETv24(t *testing.T) {
 	assert.Equal(t, 0, cfg.LogitsIndex)
 }
 
+func TestBuildModelConfig_BirdNETv24WithEmbeddings(t *testing.T) {
+	cfg := buildModelConfig(BirdNETv24, []int64{1, 144000}, [][]int64{{1, 6522}, {1, 1024}})
+	assert.Equal(t, BirdNETv24, cfg.Type)
+	assert.Equal(t, 48000, cfg.SampleRate)
+	assert.Equal(t, 144000, cfg.SampleCount)
+	assert.Equal(t, 1024, cfg.EmbeddingSize)
+	assert.Equal(t, 1, cfg.EmbeddingIndex)
+	assert.Equal(t, 0, cfg.LogitsIndex)
+}
+
 func TestBuildModelConfig_BirdNETv30(t *testing.T) {
-	cfg := buildModelConfig(BirdNETv30, []int64{1, 160000}, 2)
+	cfg := buildModelConfig(BirdNETv30, []int64{1, 160000}, [][]int64{{1, 1280}, {1, 6522}})
 	assert.Equal(t, 1280, cfg.EmbeddingSize)
 	assert.Equal(t, 0, cfg.EmbeddingIndex)
 	assert.Equal(t, 1, cfg.LogitsIndex)
 }
 
 func TestBuildModelConfig_PerchV2(t *testing.T) {
-	cfg := buildModelConfig(PerchV2, []int64{1, 160000}, 4)
+	cfg := buildModelConfig(PerchV2, []int64{1, 160000}, [][]int64{
+		{1, 1536}, {1, 16, 4, 1536}, {1, 500, 128}, {1, 6522},
+	})
 	assert.Equal(t, 1536, cfg.EmbeddingSize)
 	assert.Equal(t, 0, cfg.EmbeddingIndex)
 	assert.Equal(t, 3, cfg.LogitsIndex)
