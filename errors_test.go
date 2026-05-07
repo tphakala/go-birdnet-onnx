@@ -26,6 +26,16 @@ func TestBatchInputSizeError(t *testing.T) {
 	assert.Contains(t, err.Error(), "50000")
 }
 
+func TestEmbeddingDimMismatchError(t *testing.T) {
+	err := &EmbeddingDimMismatchError{Expected: 1024, Got: 512}
+	assert.Contains(t, err.Error(), "1024")
+	assert.Contains(t, err.Error(), "512")
+
+	target, ok := errors.AsType[*EmbeddingDimMismatchError](err)
+	require.True(t, ok)
+	assert.Equal(t, 1024, target.Expected)
+}
+
 func TestLabelCountError(t *testing.T) {
 	err := &LabelCountError{Expected: 6522, Got: 100}
 	assert.Contains(t, err.Error(), "6522")

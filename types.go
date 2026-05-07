@@ -4,6 +4,7 @@ package birdnet
 type ModelType int
 
 const (
+	// BirdNETv24 - 48kHz, 3s segments, optional embeddings (when model has 2 outputs).
 	BirdNETv24 ModelType = iota
 	BirdNETv30
 	PerchV2
